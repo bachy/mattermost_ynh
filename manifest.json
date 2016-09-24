@@ -1,6 +1,7 @@
 {
     "name": "Mattermost",
     "id": "mattermost",
+    "packaging_format": 1,
     "description": {
         "en": "An open-source, self-hosted alternative to Slack",
         "fr": "Une alternative open-source et self-hostée à Slack"
@@ -31,13 +32,23 @@
                 "example": "domain.org"
             },
             {
-                "name": "public_site",
+                "name": "path",
+                "type":"path",
+                "ask": {
+                    "en": "Choose a path for Mattermost",
+                    "fr": "Choisissez un chemin pour Mattermost"
+                },
+                "example": "/mattermost",
+                "default": "/mattermost"
+            },
+            {
+                "name": "is_public",
+                "type": "boolean",
                 "ask": {
                     "en": "Can guest users access this chat?",
                     "fr": "Les utilisateurs non-enregistrés peuvent-ils accéder à ce chat ?"
                 },
-                "choices": ["Yes", "No"],
-                "default": "Yes"
+                "default": true
             }
         ]
     }
