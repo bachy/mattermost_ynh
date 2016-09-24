@@ -66,32 +66,37 @@ smtp_password=$(ynh_string_random 12)
 sudo useradd -M --shell /bin/false -p $(openssl passwd -1 "$smtp_password") "$app"
 sudo yunohost app setting mattermost smtppwd -v "$smtp_password"
 
-# Download and install code
-archive_url="https://releases.mattermost.com/${version}/mattermost-team-${version}-linux-amd64.tar.gz"
+# Download and install code (replaced by embeded sources)
+# archive_url="https://releases.mattermost.com/${version}/mattermost-team-${version}-linux-amd64.tar.gz"
 
 sudo mkdir -p "$final_path"
 sudo mkdir -p "$data_path"
 
-wget --quiet --output-document "$archive_filename" "$archive_url"
-sudo tar -xvz --file "$archive_filename" --directory "$final_path" --strip-components 1
-rm -f "$archive_filename"
+# wget --quiet --output-document "$archive_filename" "$archive_url"
+sudo tar -xvz --file "$root_path/src/mattermost-team-3.4.0-linux-amd64.tar.gz" --directory "$final_path" --strip-components 1
+# rm -f "$archive_filename"
+
+# Copy mattermost configuration file to mm conf directory and modify it
+finalconfigjson = $final_path/config/config.json
+sudo cp $root_path/conf/mm.conf.json $finalconfigjson
 
 # Change variables in Mattermost config
 db_connection_url="${dbuser}:${dbpass}@tcp(127.0.0.1:3306)/${dbname}?charset=utf8mb4,utf8"
-sudo sed -i "s|\"DataSource\": \".*\"|\"DataSource\": \"${db_connection_url}\"|g"      $final_path/config/config.json
+sudo sed -i "s|\"DataSource\": \".*\"|\"DataSource\": \"${db_connection_url}\"|g"      $finalconfigjson
 
-sudo sed -i "s|\"Directory\": \"./data/\"|\"Directory\": \"${data_path}/\"|g"          $final_path/config/config.json
+sudo sed -i "s|\"Directory\": \"./data/\"|\"Directory\": \"${data_path}/\"|g"          $finalconfigjson
 
-sudo sed -i "s|\"SendEmailNotifications\": false|\"SendEmailNotifications\": true|g"   $final_path/config/config.json
-sudo sed -i "s|\"FeedbackName\": \"\"|\"FeedbackName\": \"Mattermost notification\"|g" $final_path/config/config.json
-sudo sed -i "s|\"FeedbackEmail\": \"\"|\"FeedbackEmail\": \"no-reply@${domain}\"|g"    $final_path/config/config.json
-sudo sed -i "s|\"SMTPUsername\": \"\"|\"SMTPUsername\": \"mattermost\"|g"              $final_path/config/config.json
-sudo sed -i "s|\"SMTPPassword\": \"\"|\"SMTPPassword\": \"${smtp_password}\"|g"        $final_path/config/config.json
-sudo sed -i "s|\"SMTPServer\": \"\"|\"SMTPServer\": \"localhost\"|g"                   $final_path/config/config.json
-sudo sed -i "s|\"SMTPPort\": \"\"|\"SMTPPort\": \"25\"|g"                              $final_path/config/config.json
+sudo sed -i "s|\"FeedbackEmail\": \"\"|\"FeedbackEmail\": \"no-reply@${domain}\"|g"       $finalconfigjson
+sudo sed -i "s|\"SMTPUsername\": \"\"|\"SMTPUsername\": \"${app}\"|g"                     $finalconfigjson
+sudo sed -i "s|\"SMTPPassword\": \"\"|\"SMTPPassword\": \"${smtp_password}\"|g"          $finalconfigjson
 
-sudo sed -i "s|\"EnableConsole\": true|\"EnableConsole\": false|g"                     $final_path/config/config.json
-sudo sed -i "s|\"FileLocation\": \"\"|\"FileLocation\": \"/var/log/mattermost.log\"|g" $final_path/config/config.json
+sudo sed -i "s|\"FileLocation\": \"\"|\"FileLocation\": \"/var/log/${app}.log\"|g" $finalconfigjson
+
+# TODO add ldap support
+# sudo sed -i "s|\"LdapServer\": \"\"|\"LdapServer\": \"????\"|g" $finalconfigjson
+
+
+
 
 # Set permissions to app directories
 sudo chown -R www-data: $final_path
@@ -105,7 +110,6 @@ sudo cp $root_path/conf/supervisor.conf /etc/supervisor/conf.d/mattermost.conf
 
 # TODO wait for MM to allow hosting at any route like http://www.example.com/chat. https://mattermost.atlassian.net/browse/PLT-200
 
-# TODO add ldap support
 
 # If app is public, add url to SSOWat conf as skipped_uris
 if [[ $is_public -eq 1 ]]; then
